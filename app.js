@@ -120,22 +120,49 @@ async function init() {
     });
 
     // Abrir Modal de Agendar Turno (Carga la lista desplegable)
+   // 🟢 Abrir Modal de Agendar Turno y cargar el buscador predictivo
     newAppointmentBtn.addEventListener('click', async () => {
         appointmentModal.classList.remove('hidden');
-        pacienteSelect.innerHTML = '<option value="">Cargando pacientes...</option>';
+        
+        const datalist = document.getElementById('lista-pacientes-pred');
+        const inputBuscar = document.getElementById('paciente_buscar');
+        const inputIdReal = document.getElementById('paciente_id_real');
+        
+        inputBuscar.value = '';
+        inputIdReal.value = '';
+        datalist.innerHTML = '';
+
         const pacientes = await supabaseService.pacientes.getAll();
         
-        if (pacientes.length === 0) {
-            pacienteSelect.innerHTML = '<option value="">No hay pacientes registrados</option>';
-        } else {
-            pacienteSelect.innerHTML = '<option value="">Seleccione un paciente...</option>';
-            pacientes.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.nombre;
-                pacienteSelect.appendChild(opt);
-            });
-        }
+        // Llenamos el Datalist para que Chrome filtre mientras escribes
+        pacientes.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.nombre; // Lo que el usuario ve y escribe
+            option.dataset.id = p.id; // Guardamos el ID de Supabase en secreto
+            datalist.appendChild(option);
+        });
+
+        // Evento para capturar cuándo el usuario elige una opción válida
+        inputBuscar.addEventListener('input', () => {
+            const val = inputBuscar.value;
+            const options = datalist.options;
+            let encontrado = false;
+
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value === val) {
+                    inputIdReal.value = options[i].dataset.id; // Seteamos el ID correcto
+                    encontrado = true;
+                    break;
+                }
+            }
+            if (!encontrado) inputIdReal.value = ''; // Si escribe cualquier cosa, invalida
+        });
+    });
+
+    // 🟢 Botón de Alta Rápida dentro del turno: Abre el modal de pacientes encima del otro
+    document.getElementById('fast-new-patient-btn').addEventListener('click', () => {
+        patientModal.classList.remove('hidden');
+        // El modal de paciente se abrirá encima del de turnos automáticamente por el orden de capas
     });
 
     // 👤 Crear botón flotante en la interfaz para ver el Directorio General de Pacientes
@@ -184,9 +211,19 @@ async function init() {
     // Submit: Guardar Turno e Historial en Paralelo
     newAppointmentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
         const formData = new FormData(newAppointmentForm);
         const dateStr = selectedDate.toISOString().split('T')[0]; 
-        const idPaciente = parseInt(formData.get('paciente_id'), 10);
+        
+        // 🟢 Tomamos el ID real que nuestro buscador capturó en secreto
+        const idPacienteRaw = document.getElementById('paciente_id_real').value;
+        
+        if (!idPacienteRaw) {
+            alert('Por favor, seleccione un paciente válido de la lista o regístrelo si es nuevo.');
+            return;
+        }
+
+        const idPaciente = parseInt(idPacienteRaw, 10);
         
         const nuevoTurno = { paciente_id: idPaciente, fecha: dateStr, hora: formData.get('hora') };
         const nuevoHistorial = {

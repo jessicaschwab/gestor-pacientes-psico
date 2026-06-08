@@ -117,11 +117,19 @@
             </div>
             <form id="new-appointment-form">
                 <div class="form-group">
-                    <label for="paciente_id">Paciente</label>
-                    <select id="paciente_id" name="paciente_id" required class="form-select">
-                        <option value="">Cargando pacientes...</option>
-                    </select>
-                </div>
+    <label for="paciente_buscar">Paciente</label>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <input type="text" id="paciente_buscar" list="lista-pacientes-pred" placeholder="Escribe para buscar..." required style="flex: 1;">
+        <datalist id="lista-pacientes-pred">
+            </datalist>
+        
+        <input type="hidden" id="paciente_id_real" name="paciente_id">
+
+        <button type="button" id="fast-new-patient-btn" class="secondary-btn" title="Registrar nuevo paciente rápido" style="padding: 0.75rem; font-size: 1.1rem; line-height: 1;">
+            ➕
+        </button>
+    </div>
+</div>
                 <div class="form-group">
                     <label for="hora">Hora</label>
                     <input type="time" id="hora" name="hora" required>
