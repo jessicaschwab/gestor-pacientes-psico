@@ -573,4 +573,20 @@ body {
         color: #444 !important;
         font-size: 11pt !important;
     }
+	
+	
+	
+	
+	
+}
+/* 🔝 Prioridad de capas para los modales */
+
+/* El modal de agendar turno se queda en un nivel estándar */
+#appointment-modal {
+    z-index: 1000;
+}
+
+/* Forzamos al modal de nuevo paciente a estar por encima de TODO */
+#patient-modal {
+    z-index: 2000 !important; 
 }

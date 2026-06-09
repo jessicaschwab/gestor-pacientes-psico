@@ -182,75 +182,190 @@ async function init() {
     });
 
     // Submit: Registrar Paciente
+    // Envío del Formulario: Registrar Nuevo Paciente (BLOQUEO DE DUPLICADOS)
     newPatientForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(newPatientForm);
+        
+        // Función auxiliar para poner la primera letra de cada palabra en mayúscula
+        const formatearNombre = (str) => {
+            return str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        };
+
+        const nombreIngresado = formatearNombre(formData.get('nombre'));
+        const telefonoIngresado = formData.get('telefono') ? formData.get('telefono').trim() : '';
+
+        const submitBtn = newPatientForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Verificando duplicados...';
+
+        // 🔍 REGLA DE ORO: VALIDAR SI EL PACIENTE YA EXISTE EN NUESTRA VARIABLE LOCAL
+        let pacienteDuplicado = false;
+        let motivoDuplicado = '';
+
+        for (let i = 0; i < todosLosPacientes.length; i++) {
+            const p = todosLosPacientes[i];
+            
+            // Verificamos por nombre exacto
+            if (p.nombre.toLowerCase() === nombreIngresado.toLowerCase()) {
+                pacienteDuplicado = true;
+                motivoDuplicado = `Ya existe un paciente registrado con el nombre "${nombreIngresado}".`;
+                break;
+            }
+            
+            // Verificamos por teléfono (solo si ingresaron un teléfono)
+            if (telefonoIngresado && p.telefono && p.telefono.trim() === telefonoIngresado) {
+                pacienteDuplicado = true;
+                motivoDuplicado = `El número de teléfono "${telefonoIngresado}" ya está asignado al paciente "${p.nombre}".`;
+                break;
+            }
+        }
+
+        // Si detectamos que ya existe, frenamos el alta inmediatamente
+        if (pacienteDuplicado) {
+            alert(`🚫 Registro Cancelado: ${motivoDuplicado}\nNo es necesario volver a crearlo.`);
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            return; 
+        }
+
+        // Si pasa el filtro de duplicados, preparamos el objeto para Supabase
         const nuevoPaciente = {
-            nombre: formData.get('nombre'),
-            telefono: formData.get('telefono'),
+            nombre: nombreIngresado, // Va limpio y formateado
+            telefono: telefonoIngresado,
             fecha_nacimiento: formData.get('fecha_nacimiento'),
             fecha_inicio_tratamiento: formData.get('fecha_inicio')
         };
-        const submitBtn = newPatientForm.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
+
+        submitBtn.textContent = 'Guardando...';
 
         try {
             const { error } = await supabaseClient.from('pacientes').insert([nuevoPaciente]);
             if (error) throw error;
+            
             patientModal.classList.add('hidden');
             newPatientForm.reset();
+            
+            // Refrescamos los datos locales de la app
             await cargarDatos();
-            alert('¡Paciente guardado con éxito!');
+            
+            // Actualizamos el buscador predictivo por si el modal de turnos estaba abierto de fondo
+            const datalist = document.getElementById('lista-pacientes-pred');
+            if (datalist) {
+                datalist.innerHTML = '';
+                todosLosPacientes.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.nombre;
+                    option.dataset.id = p.id;
+                    datalist.appendChild(option);
+                });
+            }
+
+            alert('¡Paciente registrado con éxito!');
         } catch (err) {
-            alert('Error: ' + err.message);
+            alert('Error al guardar el paciente: ' + err.message);
         } finally {
+            submitBtn.textContent = originalText;
             submitBtn.disabled = false;
         }
     });
 
-    // Submit: Guardar Turno e Historial en Paralelo
+ // Envío del Formulario: Nuevo Turno (CON VALIDACIONES DE HORARIO Y DÍAS TRABAJADOS)
     newAppointmentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const formData = new FormData(newAppointmentForm);
         const dateStr = selectedDate.toISOString().split('T')[0]; 
         
-        // 🟢 Tomamos el ID real que nuestro buscador capturó en secreto
+        // 1. REGLA: VALIDAR SÁBADOS Y DOMINGOS
+        // Usamos el objeto selectedDate.getDay(). 0 es Domingo y 6 es Sábado.
+        const numeroDiaSemana = selectedDate.getDay();
+        if (numeroDiaSemana === 0 || numeroDiaSemana === 6) {
+            alert('🚫 No es posible agendar turnos los fines de semana. Sábados y domingos el consultorio permanece cerrado.');
+            return;
+        }
+
         const idPacienteRaw = document.getElementById('paciente_id_real').value;
-        
         if (!idPacienteRaw) {
             alert('Por favor, seleccione un paciente válido de la lista o regístrelo si es nuevo.');
             return;
         }
 
         const idPaciente = parseInt(idPacienteRaw, 10);
-        
-        const nuevoTurno = { paciente_id: idPaciente, fecha: dateStr, hora: formData.get('hora') };
-        const nuevoHistorial = {
-            paciente_id: idPaciente,
-            fecha_sesion: dateStr,
-            motivo_sesion: formData.get('motivo'),
-            notas: 'Turno agendado desde el panel principal.'
-        };
-        
+        const horaNueva = formData.get('hora'); // Formato "HH:MM" (ej: "16:00")
+
         const submitBtn = newAppointmentForm.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Validando horario...';
 
         try {
+            // Buscamos si ya existen turnos para ese mismo día en Supabase
+            const turnosDelDia = await supabaseService.turnos.getByDate(dateStr);
+            
+            // Convertimos la hora elegida a minutos totales para poder comparar matemáticamente
+            const [hNueva, mNueva] = horaNueva.split(':').map(Number);
+            const minutosNuevoTurno = hNueva * 60 + mNueva;
+
+            // 2 y 3. REGLA: DETECTAR DUPLICADOS Y SUPERPOSICIONES (Bloques de 1 hora = 60 minutos)
+            let horarioOcupado = false;
+            let turnoConflictivo = null;
+
+            for (let i = 0; i < turnosDelDia.length; i++) {
+                const [hExistente, mExistente] = turnosDelDia[i].hora.split(':').map(Number);
+                const minutosExistente = hExistente * 60 + mExistente;
+
+                // Si la diferencia de tiempo entre el turno nuevo y uno existente es menor a 60 minutos, hay choque
+                if (Math.abs(minutosNuevoTurno - minutosExistente) < 60) {
+                    horarioOcupado = true;
+                    turnoConflictivo = turnosDelDia[i];
+                    break;
+                }
+            }
+
+            if (horarioOcupado) {
+                alert(`⚠️ ¡Conflicto de Horario! Ya existe un turno asignado a las ${turnoConflictivo.hora.substring(0,5)} para el paciente ${turnoConflictivo.paciente.nombre}. Como los turnos duran 1 hora, elija un horario disponible.`);
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                return; // Frenamos la ejecución, no se guarda nada
+            }
+
+            // Si pasa todas las pruebas, preparamos los objetos para guardar
+            submitBtn.textContent = 'Guardando...';
+            
+            const nuevoTurno = {
+                paciente_id: idPaciente, 
+                fecha: dateStr,
+                hora: horaNueva
+            };
+
+            const nuevoHistorial = {
+                paciente_id: idPaciente,
+                fecha_sesion: dateStr,
+                motivo_sesion: formData.get('motivo'),
+                notas: `Turno agendado para las ${horaNueva}.`
+            };
+
+            // Inserción en paralelo en Supabase
             const [resTurno, resHistorial] = await Promise.all([
                 supabaseClient.from('turnos').insert([nuevoTurno]),
                 supabaseClient.from('historial_clinico').insert([nuevoHistorial])
             ]);
+            
             if (resTurno.error) throw resTurno.error;
             if (resHistorial.error) throw resHistorial.error;
 
             appointmentModal.classList.add('hidden');
             newAppointmentForm.reset();
             await cargarDatos();
-            alert('¡Turno agendado con éxito!');
-        } catch (err) {
-            alert('Error: ' + err.message);
+            alert('¡Turno agendado e Historial Clínico iniciado con éxito!');
+
+        } catch (error) {
+            console.error('Error al procesar el turno:', error);
+            alert('Hubo un problema: ' + (error.message || 'Error en la verificación de datos.'));
         } finally {
+            submitBtn.textContent = originalText;
             submitBtn.disabled = false;
         }
     });
@@ -339,17 +454,56 @@ function renderAppointments(turnos) {
         const card = document.createElement('div');
         card.className = 'appointment-card';
         card.style.cursor = 'pointer';
+        card.style.position = 'relative'; // Para acomodar el botón de borrar perfectamente
         card.title = 'Haga clic para ver la Ficha Médica del Paciente';
+        
         card.innerHTML = `
             <div class="time-badge">${turno.hora}</div>
             <div class="patient-info">
                 <h4>${turno.paciente.nombre}</h4>
                 <p>📞 Tel: ${turno.paciente.telefono || 'Sin especificar'}</p>
             </div>
-            <div class="status-indicator pending"></div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; z-index: 10;">
+                <button class="delete-appt-btn" title="Eliminar este turno" style="background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; line-height: 1;">
+                    🗑️
+                </button>
+                <div class="status-indicator pending"></div>
+            </div>
         `;
-        // Al hacer clic sobre cualquier tarjeta de turno, se abre su expediente clínico completo
-        card.addEventListener('click', () => mostrarFichaPaciente(turno.paciente));
+        
+        // 1. Evento para abrir la ficha del paciente (solo si NO hace clic en el tacho de basura)
+        card.addEventListener('click', (e) => {
+            // Si el clic fue en el botón de borrar, no abrimos la ficha
+            if (e.target.classList.contains('delete-appt-btn')) return;
+            mostrarFichaPaciente(turno.paciente);
+        });
+        
+        // 2. Evento exclusivo para eliminar el turno al hacer clic en el tacho
+        card.querySelector('.delete-appt-btn').addEventListener('click', async (e) => {
+            e.stopPropagation(); // Evita que el clic active también la apertura de la ficha
+            
+            const confirmar = confirm(`¿Estás seguro de que deseas eliminar el turno de las ${turno.hora.substring(0,5)} para el paciente ${turno.paciente.nombre}?`);
+            
+            if (confirmar) {
+                try {
+                    // Borramos el registro directo de Supabase usando el ID del turno
+                    const { error } = await supabaseClient
+                        .from('turnos')
+                        .delete()
+                        .eq('id', turno.id);
+                        
+                    if (error) throw error;
+                    
+                    // Refrescamos los datos de la app para limpiar el calendario y la lista
+                    await cargarDatos();
+                    alert('El turno ha sido eliminado correctamente.');
+                } catch (err) {
+                    console.error('Error al eliminar turno:', err);
+                    alert('No se pudo eliminar el turno: ' + err.message);
+                }
+            }
+        });
+
         appointmentsListEl.appendChild(card);
     });
 }
@@ -363,24 +517,29 @@ function abrirDirectorioPacientes() {
 
 function renderDirectoryRows(lista) {
     patientsDirectoryContainer.innerHTML = '';
+    
     if (lista.length === 0) {
         patientsDirectoryContainer.innerHTML = '<p style="color:var(--text-muted); padding:1rem;">No se encontraron pacientes.</p>';
         return;
     }
+    
     lista.forEach(p => {
         const row = document.createElement('div');
         row.className = 'patient-directory-row';
         row.innerHTML = `
             <div>
-                <strong style="color:var(--text-primary); dblock">${p.nombre}</strong>
+                <strong style="color:var(--text-primary); display:block">${p.nombre}</strong>
                 <span style="color:var(--text-muted); font-size:0.85rem; display:block">📞 ${p.telefono || 'Sin número'}</span>
             </div>
-            <button class="primary-btn" style="padding:0.4rem 0.8rem; font-size:0.85rem;">🔍 Ver Ficha</button>
+            <button class="primary-btn" style="padding:0.4rem 0.8rem; font-size:0.85rem; width:auto;">🔍 Ver Ficha</button>
         `;
+        
+        // 🟢 Al hacer clic, cerramos la lista general y abrimos su ficha personal directamente
         row.querySelector('button').addEventListener('click', () => {
-            patientsListModal.classList.add('hidden');
-            mostrarFichaPaciente(p);
+            patientsListModal.classList.add('hidden'); // Oculta el directorio
+            mostrarFichaPaciente(p); // Abre la ficha médica con sus datos e historial
         });
+        
         patientsDirectoryContainer.appendChild(row);
     });
 }
