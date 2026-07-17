@@ -44,7 +44,6 @@ const supabaseService = {
             return data || [];
         },
         getProfile: async (pacienteId) => {
-            // Obtenemos todos los registros clínicos ordenados por fecha de sesión decreciente
             const { data, error } = await supabaseClient
                 .from('historial_clinico')
                 .select('*')
@@ -119,8 +118,7 @@ async function init() {
         patientModal.classList.remove('hidden');
     });
 
-    // Abrir Modal de Agendar Turno (Carga la lista desplegable)
-   // 🟢 Abrir Modal de Agendar Turno y cargar el buscador predictivo
+    // Abrir Modal de Agendar Turno y cargar el buscador predictivo
     newAppointmentBtn.addEventListener('click', async () => {
         appointmentModal.classList.remove('hidden');
         
@@ -134,11 +132,12 @@ async function init() {
 
         const pacientes = await supabaseService.pacientes.getAll();
         
-        // Llenamos el Datalist para que Chrome filtre mientras escribes
+        // Llenamos el Datalist diferenciando homónimos por teléfono
         pacientes.forEach(p => {
             const option = document.createElement('option');
-            option.value = p.nombre; // Lo que el usuario ve y escribe
-            option.dataset.id = p.id; // Guardamos el ID de Supabase en secreto
+            const infoTelefono = p.telefono ? ` (Tel: ${p.telefono})` : ' (Sin teléfono)';
+            option.value = `${p.nombre}${infoTelefono}`;
+            option.dataset.id = p.id;
             datalist.appendChild(option);
         });
 
@@ -150,22 +149,21 @@ async function init() {
 
             for (let i = 0; i < options.length; i++) {
                 if (options[i].value === val) {
-                    inputIdReal.value = options[i].dataset.id; // Seteamos el ID correcto
+                    inputIdReal.value = options[i].dataset.id;
                     encontrado = true;
                     break;
                 }
             }
-            if (!encontrado) inputIdReal.value = ''; // Si escribe cualquier cosa, invalida
+            if (!encontrado) inputIdReal.value = '';
         });
     });
 
-    // 🟢 Botón de Alta Rápida dentro del turno: Abre el modal de pacientes encima del otro
+    // Botón de Alta Rápida dentro del turno
     document.getElementById('fast-new-patient-btn').addEventListener('click', () => {
         patientModal.classList.remove('hidden');
-        // El modal de paciente se abrirá encima del de turnos automáticamente por el orden de capas
     });
 
-    // 👤 Crear botón flotante en la interfaz para ver el Directorio General de Pacientes
+    // Crear botón flotante en la interfaz para ver el Directorio General de Pacientes
     const headerProfile = document.querySelector('.user-profile');
     headerProfile.style.cursor = 'pointer';
     headerProfile.title = 'Ver Directorio de Pacientes';
@@ -181,13 +179,11 @@ async function init() {
         renderDirectoryRows(filtrados);
     });
 
-    // Submit: Registrar Paciente
-    // Envío del Formulario: Registrar Nuevo Paciente (BLOQUEO DE DUPLICADOS)
+    // Submit: Registrar Paciente (BLOQUEO DE DUPLICADOS)
     newPatientForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(newPatientForm);
         
-        // Función auxiliar para poner la primera letra de cada palabra en mayúscula
         const formatearNombre = (str) => {
             return str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
         };
@@ -200,29 +196,24 @@ async function init() {
         const originalText = submitBtn.textContent;
         submitBtn.textContent = 'Verificando duplicados...';
 
-        // 🔍 REGLA DE ORO: VALIDAR SI EL PACIENTE YA EXISTE EN NUESTRA VARIABLE LOCAL
         let pacienteDuplicado = false;
         let motivoDuplicado = '';
 
         for (let i = 0; i < todosLosPacientes.length; i++) {
             const p = todosLosPacientes[i];
             
-            // Verificamos por nombre exacto
-            if (p.nombre.toLowerCase() === nombreIngresado.toLowerCase()) {
+            const nombreExistente = p.nombre.toLowerCase().trim();
+            const nombreNuevo = nombreIngresado.toLowerCase().trim();
+            const telExistente = p.telefono ? p.telefono.trim() : '';
+            const telNuevo = telefonoIngresado;
+
+            if (nombreExistente === nombreNuevo && telExistente === telNuevo && telNuevo !== '') {
                 pacienteDuplicado = true;
-                motivoDuplicado = `Ya existe un paciente registrado con el nombre "${nombreIngresado}".`;
-                break;
-            }
-            
-            // Verificamos por teléfono (solo si ingresaron un teléfono)
-            if (telefonoIngresado && p.telefono && p.telefono.trim() === telefonoIngresado) {
-                pacienteDuplicado = true;
-                motivoDuplicado = `El número de teléfono "${telefonoIngresado}" ya está asignado al paciente "${p.nombre}".`;
+                motivoDuplicado = `Ya existe un registro exacto para "${nombreIngresado}" con el teléfono "${telefonoIngresado}".`;
                 break;
             }
         }
 
-        // Si detectamos que ya existe, frenamos el alta inmediatamente
         if (pacienteDuplicado) {
             alert(`🚫 Registro Cancelado: ${motivoDuplicado}\nNo es necesario volver a crearlo.`);
             submitBtn.textContent = originalText;
@@ -230,9 +221,8 @@ async function init() {
             return; 
         }
 
-        // Si pasa el filtro de duplicados, preparamos el objeto para Supabase
         const nuevoPaciente = {
-            nombre: nombreIngresado, // Va limpio y formateado
+            nombre: nombreIngresado,
             telefono: telefonoIngresado,
             fecha_nacimiento: formData.get('fecha_nacimiento'),
             fecha_inicio_tratamiento: formData.get('fecha_inicio')
@@ -247,16 +237,15 @@ async function init() {
             patientModal.classList.add('hidden');
             newPatientForm.reset();
             
-            // Refrescamos los datos locales de la app
             await cargarDatos();
             
-            // Actualizamos el buscador predictivo por si el modal de turnos estaba abierto de fondo
             const datalist = document.getElementById('lista-pacientes-pred');
             if (datalist) {
                 datalist.innerHTML = '';
                 todosLosPacientes.forEach(p => {
                     const option = document.createElement('option');
-                    option.value = p.nombre;
+                    const infoTelefono = p.telefono ? ` (Tel: ${p.telefono})` : ' (Sin teléfono)';
+                    option.value = `${p.nombre}${infoTelefono}`;
                     option.dataset.id = p.id;
                     datalist.appendChild(option);
                 });
@@ -269,17 +258,15 @@ async function init() {
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
         }
-    });
+    }); // 🌟 ¡Aquí estaba el error! Sintaxis correctamente cerrada ahora.
 
- // Envío del Formulario: Nuevo Turno (CON VALIDACIONES DE HORARIO Y DÍAS TRABAJADOS)
+    // Envío del Formulario: Nuevo Turno
     newAppointmentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const formData = new FormData(newAppointmentForm);
         const dateStr = selectedDate.toISOString().split('T')[0]; 
         
-        // 1. REGLA: VALIDAR SÁBADOS Y DOMINGOS
-        // Usamos el objeto selectedDate.getDay(). 0 es Domingo y 6 es Sábado.
         const numeroDiaSemana = selectedDate.getDay();
         if (numeroDiaSemana === 0 || numeroDiaSemana === 6) {
             alert('🚫 No es posible agendar turnos los fines de semana. Sábados y domingos el consultorio permanece cerrado.');
@@ -293,7 +280,7 @@ async function init() {
         }
 
         const idPaciente = parseInt(idPacienteRaw, 10);
-        const horaNueva = formData.get('hora'); // Formato "HH:MM" (ej: "16:00")
+        const horaNueva = formData.get('hora');
 
         const submitBtn = newAppointmentForm.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
@@ -301,14 +288,11 @@ async function init() {
         submitBtn.textContent = 'Validando horario...';
 
         try {
-            // Buscamos si ya existen turnos para ese mismo día en Supabase
             const turnosDelDia = await supabaseService.turnos.getByDate(dateStr);
             
-            // Convertimos la hora elegida a minutos totales para poder comparar matemáticamente
             const [hNueva, mNueva] = horaNueva.split(':').map(Number);
             const minutosNuevoTurno = hNueva * 60 + mNueva;
 
-            // 2 y 3. REGLA: DETECTAR DUPLICADOS Y SUPERPOSICIONES (Bloques de 1 hora = 60 minutos)
             let horarioOcupado = false;
             let turnoConflictivo = null;
 
@@ -316,7 +300,6 @@ async function init() {
                 const [hExistente, mExistente] = turnosDelDia[i].hora.split(':').map(Number);
                 const minutosExistente = hExistente * 60 + mExistente;
 
-                // Si la diferencia de tiempo entre el turno nuevo y uno existente es menor a 60 minutos, hay choque
                 if (Math.abs(minutosNuevoTurno - minutosExistente) < 60) {
                     horarioOcupado = true;
                     turnoConflictivo = turnosDelDia[i];
@@ -328,11 +311,8 @@ async function init() {
                 alert(`⚠️ ¡Conflicto de Horario! Ya existe un turno asignado a las ${turnoConflictivo.hora.substring(0,5)} para el paciente ${turnoConflictivo.paciente.nombre}. Como los turnos duran 1 hora, elija un horario disponible.`);
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
-                return; // Frenamos la ejecución, no se guarda nada
+                return;
             }
-
-            // Si pasa todas las pruebas, preparamos los objetos para guardar
-            submitBtn.textContent = 'Guardando...';
             
             const nuevoTurno = {
                 paciente_id: idPaciente, 
@@ -347,7 +327,6 @@ async function init() {
                 notas: `Turno agendado para las ${horaNueva}.`
             };
 
-            // Inserción en paralelo en Supabase
             const [resTurno, resHistorial] = await Promise.all([
                 supabaseClient.from('turnos').insert([nuevoTurno]),
                 supabaseClient.from('historial_clinico').insert([nuevoHistorial])
@@ -454,7 +433,7 @@ function renderAppointments(turnos) {
         const card = document.createElement('div');
         card.className = 'appointment-card';
         card.style.cursor = 'pointer';
-        card.style.position = 'relative'; // Para acomodar el botón de borrar perfectamente
+        card.style.position = 'relative'; 
         card.title = 'Haga clic para ver la Ficha Médica del Paciente';
         
         card.innerHTML = `
@@ -471,22 +450,18 @@ function renderAppointments(turnos) {
             </div>
         `;
         
-        // 1. Evento para abrir la ficha del paciente (solo si NO hace clic en el tacho de basura)
         card.addEventListener('click', (e) => {
-            // Si el clic fue en el botón de borrar, no abrimos la ficha
             if (e.target.classList.contains('delete-appt-btn')) return;
             mostrarFichaPaciente(turno.paciente);
         });
         
-        // 2. Evento exclusivo para eliminar el turno al hacer clic en el tacho
         card.querySelector('.delete-appt-btn').addEventListener('click', async (e) => {
-            e.stopPropagation(); // Evita que el clic active también la apertura de la ficha
+            e.stopPropagation(); 
             
             const confirmar = confirm(`¿Estás seguro de que deseas eliminar el turno de las ${turno.hora.substring(0,5)} para el paciente ${turno.paciente.nombre}?`);
             
             if (confirmar) {
                 try {
-                    // Borramos el registro directo de Supabase usando el ID del turno
                     const { error } = await supabaseClient
                         .from('turnos')
                         .delete()
@@ -494,7 +469,6 @@ function renderAppointments(turnos) {
                         
                     if (error) throw error;
                     
-                    // Refrescamos los datos de la app para limpiar el calendario y la lista
                     await cargarDatos();
                     alert('El turno ha sido eliminado correctamente.');
                 } catch (err) {
@@ -508,7 +482,6 @@ function renderAppointments(turnos) {
     });
 }
 
-// Lógica del Directorio General de Pacientes
 function abrirDirectorioPacientes() {
     patientsListModal.classList.remove('hidden');
     searchPatientInput.value = '';
@@ -534,17 +507,15 @@ function renderDirectoryRows(lista) {
             <button class="primary-btn" style="padding:0.4rem 0.8rem; font-size:0.85rem; width:auto;">🔍 Ver Ficha</button>
         `;
         
-        // 🟢 Al hacer clic, cerramos la lista general y abrimos su ficha personal directamente
         row.querySelector('button').addEventListener('click', () => {
-            patientsListModal.classList.add('hidden'); // Oculta el directorio
-            mostrarFichaPaciente(p); // Abre la ficha médica con sus datos e historial
+            patientsListModal.classList.add('hidden'); 
+            mostrarFichaPaciente(p); 
         });
         
         patientsDirectoryContainer.appendChild(row);
     });
 }
 
-// Lógica de la Ficha Clínica del Paciente
 async function mostrarFichaPaciente(paciente) {
     patientProfileModal.classList.remove('hidden');
     profileName.textContent = paciente.nombre;
@@ -564,7 +535,7 @@ async function mostrarFichaPaciente(paciente) {
         const card = document.createElement('div');
         card.className = 'history-card';
         card.innerHTML = `
-            <em>📅 Sesión del día: ${h.fecha_sesion}</em>
+             <em>📅 Sesión del día: ${h.fecha_sesion}</em>
             <p style="margin-bottom: 0.5rem;"><strong>Motivo de Consulta:</strong> ${h.motivo_sesion || 'Sin especificar'}</p>
             <p style="font-size:0.9rem; color:var(--text-secondary); font-style:italic"><strong>Notas:</strong> ${h.notes || h.notas || ''}</p>
         `;
