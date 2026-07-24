@@ -58,23 +58,34 @@ body {
 /* Header */
 .app-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.85rem 1.25rem;
-    background-color: var(--bg-surface);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    flex-wrap: wrap;
-    gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1rem;
+  background-color: #1a202c; /* O tu color de contenedor oscuro */
+  border-radius: 12px;
 }
-
+/* Fila Superior (Logo y Pacientes) */
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .logo {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
+.brand h2 {
+  color: #ffffff;
+  font-size: 1.3rem;
+  margin: 0;
+}
 .logo-icon {
     font-size: 1.75rem;
 }
@@ -241,11 +252,9 @@ body {
     color: var(--accent-primary);
 }
 .user-name {
-    display: inline-block;
-    max-width: 130px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+   color: #e9d5ff; /* Violeta muy claro / blanco sutil */
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 .appointments-indicator {
     display: flex;
@@ -560,20 +569,23 @@ body {
 
     /* Botón de Navegación Pacientes */
 .nav-btn {
-    background-color: var(--bg-surface-hover);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
+    background-color: #ffffff;
+  color: #6b21a8; /* Violeta */
+  border: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
-
+/* Fila Inferior (Usuario y Cerrar Sesión empujado a la derecha) */
+.header-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 0.6rem;
+}
 .nav-btn:hover {
     background-color: var(--accent-light);
     border-color: var(--accent-primary);
@@ -581,18 +593,19 @@ body {
 }
 
 .logout-btn {
-    background: transparent;
-    border: 1px solid var(--danger);
-    color: var(--danger);
-    padding: 0.4rem 0.8rem;
-    border-radius: var(--radius-md);
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: background 0.2s;
+    background: rgba(147, 51, 234, 0.15); /* Fondo violeta suave */
+  color: #d8b4fe; /* Texto violeta claro */
+  border: 1px solid rgba(168, 85, 247, 0.4); /* Borde violeta */
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .logout-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(147, 51, 234, 0.3);
+  color: #ffffff;
 }
     #selected-date-text {
         color: #333 !important;

@@ -91,23 +91,23 @@
     <div id="app-container" class="app-container" style="display: none;">
         <!-- Header -->
         <header class="app-header">
-            <div class="logo">
-                <span class="logo-icon">🧠</span>
-                <h1>PsicoApp</h1>
-            </div>
-            <!-- Botón elegante para ver el listado de pacientes -->
-           <button id="open-patients-btn" class="nav-btn">
-             👥 Pacientes
-            </button>
-            <div class="user-profile" style="display: flex; align-items: center; gap: 1rem;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div class="avatar">Dr</div>
-                    <span id="user-display-name">Dr. Admin</span>
-                </div>
-                <!-- Botón de Salir integrado de forma limpia -->
-                <button id="btn-logout" class="btn-logout" title="Cerrar sesión">Cerrar Sesión 🚪</button>
-            </div>
-        </header>
+  <!-- Fila 1: Logo/App a la izquierda y Botón Pacientes a la derecha -->
+  <div class="header-top">
+    <div class="brand">
+      <span>🧠</span>
+      <h2>PsicoApp</h2>
+    </div>
+    <button id="open-patients-btn" class="nav-btn">👥 Pacientes</button>
+  </div>
+
+  <!-- Fila 2: Nombre del usuario a la izquierda y Cerrar Sesión a la derecha -->
+  <div class="header-bottom">
+    <span class="user-name" id="user-display-name">Jessica Schwab</span>
+    <button id="btn-logout" class="logout-btn">
+      Cerrar Sesión 🚪
+    </button>
+  </div>
+</header>
 
         <!-- Main Content Grid -->
         <main class="main-layout">
