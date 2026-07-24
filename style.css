@@ -32,24 +32,27 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+   font-family: 'Inter', sans-serif;
     background-color: var(--bg-main);
     color: var(--text-primary);
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: center;
-    overflow: hidden;
+    align-items: flex-start;
+    /* Permitir scroll vertical cuando los paneles se apilen */
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .app-container {
     width: 100%;
     max-width: 1400px;
-    height: 100vh;
+    min-height: 100vh;
+    height: auto;
     display: flex;
     flex-direction: column;
-    padding: 1.5rem;
-    gap: 1.5rem;
+    padding: 1rem;
+    gap: 1.25rem;
 }
 
 /* Header */
@@ -57,11 +60,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.5rem;
+    padding: 0.85rem 1.25rem;
     background-color: var(--bg-surface);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
+    flex-wrap: wrap;
+    gap: 0.75rem;
 }
 
 .logo {
@@ -83,9 +88,10 @@ body {
 .user-profile {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
 }
 
 .avatar {
@@ -102,11 +108,11 @@ body {
 
 /* Layout */
 .main-layout {
-    display: grid;
+  display: grid;
     grid-template-columns: 1fr 380px;
     gap: 1.5rem;
     flex: 1;
-    min-height: 0; /* Important for scrollable children */
+    min-height: 0;
 }
 
 /* Panels */
@@ -234,7 +240,13 @@ body {
 .day.today .day-number {
     color: var(--accent-primary);
 }
-
+.user-name {
+    display: inline-block;
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .appointments-indicator {
     display: flex;
     gap: 0.25rem;
@@ -589,4 +601,63 @@ body {
 /* Forzamos al modal de nuevo paciente a estar por encima de TODO */
 #patient-modal {
     z-index: 2000 !important; 
+}
+/* =========================================================
+   📱 RESPONSIVIDAD PARA CELULARES (Menos de 768px)
+   ========================================================= */
+
+@media (max-width: 768px) {
+    .app-container {
+        padding: 0.75rem;
+        gap: 1rem;
+    }
+
+    /* Rediseño del Header en celular */
+    .app-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .logo h1 {
+        font-size: 1.1rem;
+    }
+
+    /* Pasa las columnas a una sola fila vertical */
+    .main-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* Ajuste de días en la cuadrícula del calendario */
+    .days {
+        gap: 0.25rem;
+    }
+
+    .day {
+        min-height: 58px;
+        padding: 0.35rem;
+    }
+
+    .day-number {
+        font-size: 0.8rem;
+    }
+
+    .weekdays {
+        font-size: 0.75rem;
+    }
+
+    /* Paneles adaptables */
+    .panel {
+        padding: 1rem;
+    }
+
+    .appointments-list {
+        max-height: none; /* Que fluya con el scroll de la página */
+    }
+
+    /* Ocultar texto largo del usuario en móviles ultra pequeños si es necesario */
+    @media (max-width: 400px) {
+        .user-name {
+            display: none; /* Solo muestra el Avatar/Badge y 'Cerrar Sesión' si la pantalla es muy estrecha */
+        }
+    }
 }
