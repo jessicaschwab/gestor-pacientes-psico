@@ -139,7 +139,7 @@ async function init() {
     }
 
     // 🚪 Evento Cerrar Sesión
-    const btnLogout = document.getElementById('btn-logout');
+    const btnLogout = document.getElementById('btn-logout') || document.getElementById('logout-btn');
     if (btnLogout) {
         btnLogout.addEventListener('click', async () => {
             await supabaseClient.auth.signOut();
@@ -205,17 +205,18 @@ async function init() {
         });
     });
 
-    // Alta rápida de paciente
-    document.getElementById('fast-new-patient-btn').addEventListener('click', () => {
-        patientModal.classList.remove('hidden');
-    });
+    // Alta rápida de paciente desde modal de agendar turno
+    const fastNewPatientBtn = document.getElementById('fast-new-patient-btn');
+    if (fastNewPatientBtn) {
+        fastNewPatientBtn.addEventListener('click', () => {
+            patientModal.classList.remove('hidden');
+        });
+    }
 
-    // Directorio General desde el Header
-    const headerProfile = document.querySelector('.user-profile');
-    if (headerProfile) {
-        headerProfile.style.cursor = 'pointer';
-        headerProfile.title = 'Ver Directorio de Pacientes';
-        headerProfile.addEventListener('click', abrirDirectorioPacientes);
+    // 👥 Abrir Directorio General de Pacientes desde el nuevo botón
+    const openPatientsBtn = document.getElementById('open-patients-btn');
+    if (openPatientsBtn) {
+        openPatientsBtn.addEventListener('click', abrirDirectorioPacientes);
     }
 
     // Buscador interactivo de pacientes
