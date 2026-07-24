@@ -60,8 +60,9 @@ let currentDate = new Date();
 let selectedDate = new Date();
 let allAppointments = [];
 let todosLosPacientes = [];
+let pacienteActualEnFicha = null;
 
-// DOM Elements originales
+// DOM Elements
 const calendarDaysEl = document.getElementById('calendar-days');
 const currentMonthEl = document.getElementById('current-month');
 const prevMonthBtn = document.getElementById('prev-month');
@@ -71,7 +72,7 @@ const selectedDateTextEl = document.getElementById('selected-date-text');
 const newPatientBtn = document.getElementById('new-patient-btn');
 const newAppointmentBtn = document.getElementById('new-appointment-btn');
 
-// Modales originales
+// Modales
 const patientModal = document.getElementById('patient-modal');
 const closeModalBtn = document.getElementById('close-modal-btn');
 const cancelPatientBtn = document.getElementById('cancel-patient-btn');
@@ -80,9 +81,8 @@ const appointmentModal = document.getElementById('appointment-modal');
 const closeApptModalBtn = document.getElementById('close-appt-modal-btn');
 const cancelApptBtn = document.getElementById('cancel-appt-btn');
 const newAppointmentForm = document.getElementById('new-appointment-form');
-const pacienteSelect = document.getElementById('paciente_id');
 
-// NUEVOS ELEMENTOS DE GESTIÓN
+// Gestión / Directorio
 const printDayBtn = document.getElementById('print-day-btn');
 const patientsListModal = document.getElementById('patients-list-modal');
 const closePatientsListBtn = document.getElementById('close-patients-list-btn');
@@ -94,29 +94,64 @@ const closeProfileBtn = document.getElementById('close-profile-btn');
 const profileName = document.getElementById('profile-name');
 const profileMeta = document.getElementById('profile-meta');
 const profileHistoryContainer = document.getElementById('profile-history-container');
-// Al cargar la página, verificar la sesión activa
-window.addEventListener('DOMContentLoaded', async () => {
-  const { data: { session } } = await supabase.auth.getSession();
 
-  if (!session) {
-    // 🔒 NO HAY SESIÓN: Mostrar pantalla de Login y ocultar el resto
-    document.getElementById('login-container').style.display = 'block';
-    document.getElementById('app-container').style.display = 'none';
-  } else {
-    // 🔓 SESIÓN ACTIVA: Ocultar Login y mostrar la App
-    document.getElementById('login-container').style.display = 'none';
-    document.getElementById('app-container').style.display = 'block';
+// 🔒 CONTROL DE SEGURIDAD Y SESIÓN CON GOOGLE
+async function verificarSesion() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
     
-    // Cargar pacientes, turnos, etc.
-    cargarPacientes();
-  }
-});
+    const loginContainer = document.getElementById('login-container');
+    const appContainer = document.getElementById('app-container');
+
+    if (session) {
+        // Sesión activa: mostrar App y ocultar Login
+        if (loginContainer) loginContainer.style.display = 'none';
+        if (appContainer) appContainer.style.display = 'block';
+        
+        // Mostrar nombre del usuario si existe
+        if (session.user && session.user.user_metadata && session.user.user_metadata.full_name) {
+            const userDisplay = document.getElementById('user-display-name');
+            if (userDisplay) userDisplay.textContent = session.user.user_metadata.full_name;
+        }
+        
+        // Cargar datos principales
+        await cargarDatos();
+    } else {
+        // Sin sesión: mostrar Login y ocultar App
+        if (loginContainer) loginContainer.style.display = 'flex';
+        if (appContainer) appContainer.style.display = 'none';
+    }
+}
+
+// 🚀 INICIALIZACIÓN DE EVENTOS PRINCIPALES
 async function init() {
+    // 🔑 Evento Iniciar Sesión con Google
+    const btnLoginGoogle = document.getElementById('btn-login-google');
+    if (btnLoginGoogle) {
+        btnLoginGoogle.addEventListener('click', async () => {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) alert('Error al iniciar sesión: ' + error.message);
+        });
+    }
+
+    // 🚪 Evento Cerrar Sesión
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+        });
+    }
+
     // Navegación Calendario
     prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
     nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
 
-    // Cierres básicos de modales
+    // Cierres de modales
     closeModalBtn.addEventListener('click', () => patientModal.classList.add('hidden'));
     cancelPatientBtn.addEventListener('click', () => patientModal.classList.add('hidden'));
     closeApptModalBtn.addEventListener('click', () => appointmentModal.classList.add('hidden'));
@@ -124,17 +159,15 @@ async function init() {
     closePatientsListBtn.addEventListener('click', () => patientsListModal.classList.add('hidden'));
     closeProfileBtn.addEventListener('click', () => patientProfileModal.classList.add('hidden'));
 
-    // 🖨️ Función de Impresión Filtrada por Día
-    printDayBtn.addEventListener('click', () => {
-        window.print();
-    });
+    // Impresión
+    printDayBtn.addEventListener('click', () => { window.print(); });
 
-    // Abrir Modal de Registrar Paciente
+    // Abrir Modal Nuevo Paciente
     newPatientBtn.addEventListener('click', () => {
         patientModal.classList.remove('hidden');
     });
 
-    // Abrir Modal de Agendar Turno y cargar el buscador predictivo
+    // Abrir Modal Agendar Turno
     newAppointmentBtn.addEventListener('click', async () => {
         appointmentModal.classList.remove('hidden');
         
@@ -148,7 +181,6 @@ async function init() {
 
         const pacientes = await supabaseService.pacientes.getAll();
         
-        // Llenamos el Datalist diferenciando homónimos por teléfono
         pacientes.forEach(p => {
             const option = document.createElement('option');
             const infoTelefono = p.telefono ? ` (Tel: ${p.telefono})` : ' (Sin teléfono)';
@@ -156,23 +188,7 @@ async function init() {
             option.dataset.id = p.id;
             datalist.appendChild(option);
         });
-// Función para iniciar sesión con Google
-async function iniciarSesionConGoogle() {
-  const { data, error } = await supabaseClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin // Redirige de vuelta a tu web en Vercel
-    }
-  });
-  if (error) console.error('Error al iniciar sesión:', error.message);
-}
 
-// Función para cerrar sesión
-async function cerrarSesion() {
-  await supabaseClient.auth.signOut();
-  window.location.reload();
-}
-        // Evento para capturar cuándo el usuario elige una opción válida
         inputBuscar.addEventListener('input', () => {
             const val = inputBuscar.value;
             const options = datalist.options;
@@ -189,28 +205,77 @@ async function cerrarSesion() {
         });
     });
 
-    // Botón de Alta Rápida dentro del turno
+    // Alta rápida de paciente
     document.getElementById('fast-new-patient-btn').addEventListener('click', () => {
         patientModal.classList.remove('hidden');
     });
 
-    // Crear botón flotante en la interfaz para ver el Directorio General de Pacientes
+    // Directorio General desde el Header
     const headerProfile = document.querySelector('.user-profile');
-    headerProfile.style.cursor = 'pointer';
-    headerProfile.title = 'Ver Directorio de Pacientes';
-    headerProfile.addEventListener('click', abrirDirectorioPacientes);
+    if (headerProfile) {
+        headerProfile.style.cursor = 'pointer';
+        headerProfile.title = 'Ver Directorio de Pacientes';
+        headerProfile.addEventListener('click', abrirDirectorioPacientes);
+    }
 
-    // Buscador interactivo de pacientes (filtra mientras escribes)
+    // Buscador interactivo de pacientes
     searchPatientInput.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         const filtrados = todosLosPacientes.filter(p => 
             p.nombre.toLowerCase().includes(query) || 
-            (p.telefono && p.telefono.includes(query))
+            (p.telefono && p.telefono.includes(query)) ||
+            (p.dni && p.dni.includes(query))
         );
         renderDirectoryRows(filtrados);
     });
 
-    // Submit: Registrar Paciente (BLOQUEO DE DUPLICADOS)
+    // 📝 Guardar anotaciones de la sesión en tiempo real
+    const saveNoteBtn = document.getElementById('save-session-note-btn');
+    if (saveNoteBtn) {
+        saveNoteBtn.addEventListener('click', async () => {
+            const notesInput = document.getElementById('session-notes-input');
+            const notaTexto = notesInput.value.trim();
+            
+            if (!notaTexto) {
+                alert('Por favor, escribe alguna anotación antes de guardar.');
+                return;
+            }
+
+            if (!pacienteActualEnFicha) return;
+
+            const hoyStr = new Date().toISOString().split('T')[0];
+            saveNoteBtn.disabled = true;
+            saveNoteBtn.textContent = 'Guardando anotación...';
+
+            const nuevoHistorial = {
+                paciente_id: pacienteActualEnFicha.id,
+                fecha_sesion: hoyStr,
+                motivo_sesion: 'Evolución / Seguimiento de sesión',
+                notas: notaTexto
+            };
+
+            try {
+                const { error } = await supabaseClient
+                    .from('historial_clinico')
+                    .insert([nuevoHistorial]);
+
+                if (error) throw error;
+
+                notesInput.value = '';
+                alert('¡Anotación de la sesión guardada correctamente!');
+                await refrescarHistorialClinicoVisual(pacienteActualEnFicha.id);
+
+            } catch (err) {
+                console.error('Error al guardar nota clínica:', err);
+                alert('No se pudo guardar la anotación: ' + err.message);
+            } finally {
+                saveNoteBtn.disabled = false;
+                saveNoteBtn.textContent = '💾 Guardar Notas de la Sesión';
+            }
+        });
+    }
+
+    // ➕ Submit: Registrar Nuevo Paciente (Con Control por DNI)
     newPatientForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(newPatientForm);
@@ -220,6 +285,7 @@ async function cerrarSesion() {
         };
 
         const nombreIngresado = formatearNombre(formData.get('nombre'));
+        const dniIngresado = formData.get('dni') ? formData.get('dni').trim() : '';
         const telefonoIngresado = formData.get('telefono') ? formData.get('telefono').trim() : '';
 
         const submitBtn = newPatientForm.querySelector('button[type="submit"]');
@@ -232,21 +298,15 @@ async function cerrarSesion() {
 
         for (let i = 0; i < todosLosPacientes.length; i++) {
             const p = todosLosPacientes[i];
-            
-            const nombreExistente = p.nombre.toLowerCase().trim();
-            const nombreNuevo = nombreIngresado.toLowerCase().trim();
-            const telExistente = p.telefono ? p.telefono.trim() : '';
-            const telNuevo = telefonoIngresado;
-
-            if (nombreExistente === nombreNuevo && telExistente === telNuevo && telNuevo !== '') {
+            if (dniIngresado && p.dni && p.dni.trim() === dniIngresado) {
                 pacienteDuplicado = true;
-                motivoDuplicado = `Ya existe un registro exacto para "${nombreIngresado}" con el teléfono "${telefonoIngresado}".`;
+                motivoDuplicado = `Ya existe un paciente registrado con el DNI N° ${dniIngresado} (${p.nombre}).`;
                 break;
             }
         }
 
         if (pacienteDuplicado) {
-            alert(`🚫 Registro Cancelado: ${motivoDuplicado}\nNo es necesario volver a crearlo.`);
+            alert(`🚫 Registro Cancelado: ${motivoDuplicado}`);
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
             return; 
@@ -254,6 +314,7 @@ async function cerrarSesion() {
 
         const nuevoPaciente = {
             nombre: nombreIngresado,
+            dni: dniIngresado,
             telefono: telefonoIngresado,
             fecha_nacimiento: formData.get('fecha_nacimiento'),
             fecha_inicio_tratamiento: formData.get('fecha_inicio')
@@ -269,19 +330,6 @@ async function cerrarSesion() {
             newPatientForm.reset();
             
             await cargarDatos();
-            
-            const datalist = document.getElementById('lista-pacientes-pred');
-            if (datalist) {
-                datalist.innerHTML = '';
-                todosLosPacientes.forEach(p => {
-                    const option = document.createElement('option');
-                    const infoTelefono = p.telefono ? ` (Tel: ${p.telefono})` : ' (Sin teléfono)';
-                    option.value = `${p.nombre}${infoTelefono}`;
-                    option.dataset.id = p.id;
-                    datalist.appendChild(option);
-                });
-            }
-
             alert('¡Paciente registrado con éxito!');
         } catch (err) {
             alert('Error al guardar el paciente: ' + err.message);
@@ -289,9 +337,9 @@ async function cerrarSesion() {
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
         }
-    }); // 🌟 ¡Aquí estaba el error! Sintaxis correctamente cerrada ahora.
+    });
 
-    // Envío del Formulario: Nuevo Turno
+    // ⏰ Submit: Nuevo Turno
     newAppointmentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -380,20 +428,11 @@ async function cerrarSesion() {
         }
     });
 
-    await cargarDatos();
+    // Evaluar estado de login de entrada
+    await verificarSesion();
 }
-// Buscar el botón por su ID
-const btnLogout = document.getElementById('btn-logout');
 
-if (btnLogout) {
-  btnLogout.addEventListener('click', async () => {
-    // 1. Le decimos a Supabase que cierre la sesión activa
-    await supabase.auth.signOut();
-    
-    // 2. Recargamos la página para que vuelva a la pantalla de login bloqueada
-    window.location.reload();
-  });
-}
+// 📊 FUNCIONES AUXILIARES DE DATOS Y RENDERIZADO
 async function cargarDatos() {
     try {
         allAppointments = await supabaseService.turnos.getAll();
@@ -544,7 +583,7 @@ function renderDirectoryRows(lista) {
         row.innerHTML = `
             <div>
                 <strong style="color:var(--text-primary); display:block">${p.nombre}</strong>
-                <span style="color:var(--text-muted); font-size:0.85rem; display:block">📞 ${p.telefono || 'Sin número'}</span>
+                <span style="color:var(--text-muted); font-size:0.85rem; display:block">DNI: ${p.dni || 'S/D'} | 📞 ${p.telefono || 'Sin número'}</span>
             </div>
             <button class="primary-btn" style="padding:0.4rem 0.8rem; font-size:0.85rem; width:auto;">🔍 Ver Ficha</button>
         `;
@@ -559,13 +598,21 @@ function renderDirectoryRows(lista) {
 }
 
 async function mostrarFichaPaciente(paciente) {
+    pacienteActualEnFicha = paciente;
     patientProfileModal.classList.remove('hidden');
     profileName.textContent = paciente.nombre;
-    profileMeta.innerHTML = `<strong>Nacimiento:</strong> ${paciente.fecha_nacimiento || 'Sin especificar'} | <strong>Inicio:</strong> ${paciente.fecha_inicio_tratamiento || 'Sin especificar'}`;
+    profileMeta.innerHTML = `<strong>DNI:</strong> ${paciente.dni || 'Sin especificar'} | <strong>Nacimiento:</strong> ${paciente.fecha_nacimiento || 'Sin especificar'} | <strong>Inicio:</strong> ${paciente.fecha_inicio_tratamiento || 'Sin especificar'}`;
     
+    const notesInput = document.getElementById('session-notes-input');
+    if (notesInput) notesInput.value = '';
+
+    await refrescarHistorialClinicoVisual(paciente.id);
+}
+
+async function refrescarHistorialClinicoVisual(pacienteId) {
     profileHistoryContainer.innerHTML = '<p style="color:var(--text-muted)">Buscando historial clínico...</p>';
     
-    const historial = await supabaseService.pacientes.getProfile(paciente.id);
+    const historial = await supabaseService.pacientes.getProfile(pacienteId);
     profileHistoryContainer.innerHTML = '';
     
     if (historial.length === 0) {
@@ -577,13 +624,13 @@ async function mostrarFichaPaciente(paciente) {
         const card = document.createElement('div');
         card.className = 'history-card';
         card.innerHTML = `
-             <em>📅 Sesión del día: ${h.fecha_sesion}</em>
-            <p style="margin-bottom: 0.5rem;"><strong>Motivo de Consulta:</strong> ${h.motivo_sesion || 'Sin especificar'}</p>
-            <p style="font-size:0.9rem; color:var(--text-secondary); font-style:italic"><strong>Notas:</strong> ${h.notes || h.notas || ''}</p>
+            <em>📅 Sesión del día: ${h.fecha_sesion}</em>
+            <p style="margin-bottom: 0.5rem;"><strong>Motivo de Consulta:</strong> ${h.motivo_sesion || 'N/C'}</p>
+            <p style="font-size:0.95rem; color:var(--text-secondary); white-space: pre-line; background: rgba(255,255,255,0.03); padding: 0.5rem; border-radius: 4px;"><strong>Notas:</strong> ${h.notes || h.notas || 'Sin anotaciones registradas.'}</p>
         `;
         profileHistoryContainer.appendChild(card);
     });
 }
 
-// Ejecutar aplicación
-init();
+// Ejecutar inicialización al cargar la ventana
+window.addEventListener('DOMContentLoaded', init);
