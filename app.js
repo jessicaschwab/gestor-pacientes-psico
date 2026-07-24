@@ -94,7 +94,23 @@ const closeProfileBtn = document.getElementById('close-profile-btn');
 const profileName = document.getElementById('profile-name');
 const profileMeta = document.getElementById('profile-meta');
 const profileHistoryContainer = document.getElementById('profile-history-container');
+// Al cargar la página, verificar la sesión activa
+window.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await supabase.auth.getSession();
 
+  if (!session) {
+    // 🔒 NO HAY SESIÓN: Mostrar pantalla de Login y ocultar el resto
+    document.getElementById('login-container').style.display = 'block';
+    document.getElementById('app-container').style.display = 'none';
+  } else {
+    // 🔓 SESIÓN ACTIVA: Ocultar Login y mostrar la App
+    document.getElementById('login-container').style.display = 'none';
+    document.getElementById('app-container').style.display = 'block';
+    
+    // Cargar pacientes, turnos, etc.
+    cargarPacientes();
+  }
+});
 async function init() {
     // Navegación Calendario
     prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
@@ -140,7 +156,22 @@ async function init() {
             option.dataset.id = p.id;
             datalist.appendChild(option);
         });
+// Función para iniciar sesión con Google
+async function iniciarSesionConGoogle() {
+  const { data, error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin // Redirige de vuelta a tu web en Vercel
+    }
+  });
+  if (error) console.error('Error al iniciar sesión:', error.message);
+}
 
+// Función para cerrar sesión
+async function cerrarSesion() {
+  await supabaseClient.auth.signOut();
+  window.location.reload();
+}
         // Evento para capturar cuándo el usuario elige una opción válida
         inputBuscar.addEventListener('input', () => {
             const val = inputBuscar.value;
@@ -351,7 +382,18 @@ async function init() {
 
     await cargarDatos();
 }
+// Buscar el botón por su ID
+const btnLogout = document.getElementById('btn-logout');
 
+if (btnLogout) {
+  btnLogout.addEventListener('click', async () => {
+    // 1. Le decimos a Supabase que cierre la sesión activa
+    await supabase.auth.signOut();
+    
+    // 2. Recargamos la página para que vuelva a la pantalla de login bloqueada
+    window.location.reload();
+  });
+}
 async function cargarDatos() {
     try {
         allAppointments = await supabaseService.turnos.getAll();
