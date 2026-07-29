@@ -97,29 +97,49 @@ const profileHistoryContainer = document.getElementById('profile-history-contain
 
 // 🔒 CONTROL DE SEGURIDAD Y SESIÓN CON GOOGLE
 async function verificarSesion() {
+    async function verificarSesion() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     
     const loginContainer = document.getElementById('login-container');
     const appContainer = document.getElementById('app-container');
 
+    // 1. Lista de correos autorizados
+    const emailsAutorizados = [
+        'profesoraschwabjessica@gmail.com'
+    ];
+
     if (session) {
-        // Sesión activa: mostrar App y ocultar Login
+        const userEmail = session.user?.email?.toLowerCase();
+
+        // 2. Si el email NO está en la lista -> BLOQUEAR
+        if (!emailsAutorizados.includes(userEmail)) {
+            alert(`🚫 Acceso denegado: El correo ${userEmail} no tiene permisos para acceder.`);
+            
+            // Cerrar sesión en Supabase para limpiar el estado
+            await supabaseClient.auth.signOut();
+            
+            // Forzar vista de login
+            if (loginContainer) loginContainer.style.display = 'flex';
+            if (appContainer) appContainer.style.display = 'none';
+            return; // 🛑 CORTA LA EJECUCIÓN: No llega a cargarDatos()
+        }
+
+        // 3. Si el email SÍ está autorizado -> PERMITIR
         if (loginContainer) loginContainer.style.display = 'none';
         if (appContainer) appContainer.style.display = 'block';
         
-        // Mostrar nombre del usuario si existe
-        if (session.user && session.user.user_metadata && session.user.user_metadata.full_name) {
+        if (session.user?.user_metadata?.full_name) {
             const userDisplay = document.getElementById('user-display-name');
             if (userDisplay) userDisplay.textContent = session.user.user_metadata.full_name;
         }
         
-        // Cargar datos principales
         await cargarDatos();
     } else {
-        // Sin sesión: mostrar Login y ocultar App
+        // Sin sesión activa
         if (loginContainer) loginContainer.style.display = 'flex';
         if (appContainer) appContainer.style.display = 'none';
     }
+}
 }
 
 // 🚀 INICIALIZACIÓN DE EVENTOS PRINCIPALES
