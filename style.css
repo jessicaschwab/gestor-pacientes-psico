@@ -566,12 +566,47 @@ body {
         border-bottom: 2px solid black;
         padding-bottom: 10px;
     }
+/* Contenedor del botón de Google */
+.google-btn-container {
+    width: 100%;
+    margin-top: 28px; /* Ocupa el espacio hacia abajo */
+}
+
+/* Botón de Google restaurado */
+.btn-google {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background-color: #ffffff;
+    color: #1f2937;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+.btn-google:hover {
+    background-color: #f8fafc;
+}
+
+.btn-google:active {
+    transform: scale(0.98);
+}
+
+/* Ajustes para el cartel de error si llega a saltar */
 .unauthorized-card {
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 16px;
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 20px;
+    margin-bottom: 10px;
     text-align: center;
 }
 
@@ -584,21 +619,20 @@ body {
 .unauthorized-card p {
     color: #cbd5e1;
     font-size: 0.85rem;
-    margin: 0 0 10px 0;
+    margin: 0 0 12px 0;
 }
 
 .btn-retry {
     background-color: #ef4444;
     color: white;
     border: none;
-    padding: 8px 14px;
-    border-radius: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s ease;
+    width: 100%;
 }
-
 .btn-retry:hover {
     background-color: #dc2626;
 }
