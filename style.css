@@ -32,14 +32,13 @@
 }
 
 body {
-   font-family: 'Inter', sans-serif;
+    font-family: 'Inter', sans-serif;
     background-color: var(--bg-main);
     color: var(--text-primary);
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    /* Permitir scroll vertical cuando los paneles se apilen */
     overflow-x: hidden;
     overflow-y: auto;
 }
@@ -55,37 +54,166 @@ body {
     gap: 1.25rem;
 }
 
-/* Header */
+/* =========================================================
+   🔑 ESTILOS DEL LOGIN Y ACCESO DENEGADO
+   ========================================================= */
+
+/* Contenedor principal de login centrado */
+#login-container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.login-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+
+.login-header .logo-emoji {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.login-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.login-header p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Botón de Google */
+.google-btn-container {
+    width: 100%;
+    margin-top: 2rem;
+}
+
+.btn-google {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background-color: #ffffff;
+    color: #1f2937;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+.btn-google:hover {
+    background-color: #f8fafc;
+}
+
+.btn-google:active {
+    transform: scale(0.98);
+}
+
+/* Cartel de error integrado */
+.unauthorized-card {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 1.5rem;
+    text-align: center;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.unauthorized-icon {
+    font-size: 2rem;
+    margin-bottom: 0.25rem;
+}
+
+.unauthorized-card h4 {
+    color: #ef4444;
+    margin: 4px 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.unauthorized-card p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 0 0 12px 0;
+}
+
+.btn-retry {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s ease;
+}
+
+.btn-retry:hover {
+    background-color: #dc2626;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Header de la App */
 .app-header {
     display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  padding: 1rem;
-  background-color: #1a202c; /* O tu color de contenedor oscuro */
-  border-radius: 12px;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding: 1rem;
+    background-color: #1a202c;
+    border-radius: 12px;
 }
-/* Fila Superior (Logo y Pacientes) */
+
 .header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
+
 .logo {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
+
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .brand h2 {
-  color: #ffffff;
-  font-size: 1.3rem;
-  margin: 0;
+    color: #ffffff;
+    font-size: 1.3rem;
+    margin: 0;
 }
+
 .logo-icon {
     font-size: 1.75rem;
 }
@@ -117,9 +245,56 @@ body {
     color: white;
 }
 
+.header-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 0.6rem;
+}
+
+.user-name {
+    color: #e9d5ff;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.nav-btn {
+    background-color: #ffffff;
+    color: #6b21a8;
+    border: none;
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.nav-btn:hover {
+    background-color: var(--accent-light);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.logout-btn {
+    background: rgba(147, 51, 234, 0.15);
+    color: #d8b4fe;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+    background: rgba(147, 51, 234, 0.3);
+    color: #ffffff;
+}
+
 /* Layout */
 .main-layout {
-  display: grid;
+    display: grid;
     grid-template-columns: 1fr 380px;
     gap: 1.5rem;
     flex: 1;
@@ -251,11 +426,7 @@ body {
 .day.today .day-number {
     color: var(--accent-primary);
 }
-.user-name {
-   color: #e9d5ff; /* Violeta muy claro / blanco sutil */
-  font-weight: 500;
-  font-size: 0.95rem;
-}
+
 .appointments-indicator {
     display: flex;
     gap: 0.25rem;
@@ -277,14 +448,12 @@ body {
     min-height: 0;
 }
 
-/* Limita la lista de turnos para que deje espacio a los botones */
 .appointments-list {
     flex: 1;
     overflow-y: auto;
-    max-height: calc(100vh - 350px); /* Le da un límite para que los botones suban */
+    max-height: calc(100vh - 350px);
 }
 
-/* Estilo para el contenedor de botones del costado */
 .main-layout .appointments-panel div[style*="display: flex"] {
     margin-top: auto;
     padding-top: 1rem;
@@ -507,7 +676,7 @@ body {
     background-color: var(--bg-surface-hover);
 }
 
-/* Buscador de pacientes en el modal */
+/* Buscador de pacientes */
 #search-patient-input {
     margin-bottom: 0.5rem;
 }
@@ -534,11 +703,21 @@ body {
     padding: 1rem;
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
+
 .history-card em {
     font-size: 0.85rem;
     color: var(--text-muted);
     display: block;
     margin-bottom: 0.5rem;
+}
+
+/* 🔝 Prioridad de capas para los modales */
+#appointment-modal {
+    z-index: 1000;
+}
+
+#patient-modal {
+    z-index: 2000 !important; 
 }
 
 /* 🖨️ ESTILOS EXCLUSIVOS PARA IMPRESIÓN */
@@ -549,11 +728,9 @@ body {
         height: auto !important;
         overflow: visible !important;
     }
-    /* Ocultamos absolutamente toda la interfaz interactiva */
-    .app-header, .calendar-panel, #print-day-btn, .primary-btn, .secondary-btn, .modal-overlay, .status-indicator {
+    .app-header, .calendar-panel, #print-day-btn, .primary-btn, .secondary-btn, .modal-overlay, .status-indicator, #login-container {
         display: none !important;
     }
-    /* Expandimos el panel de turnos para que ocupe toda la hoja */
     .appointments-panel {
         width: 100% !important;
         border: none !important;
@@ -566,125 +743,6 @@ body {
         border-bottom: 2px solid black;
         padding-bottom: 10px;
     }
-/* Contenedor del botón de Google */
-.google-btn-container {
-    width: 100%;
-    margin-top: 28px; /* Ocupa el espacio hacia abajo */
-}
-
-/* Botón de Google restaurado */
-.btn-google {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    background-color: #ffffff;
-    color: #1f2937;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transition: transform 0.1s ease, background-color 0.2s ease;
-}
-
-.btn-google:hover {
-    background-color: #f8fafc;
-}
-
-.btn-google:active {
-    transform: scale(0.98);
-}
-
-/* Ajustes para el cartel de error si llega a saltar */
-.unauthorized-card {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 10px;
-    padding: 14px;
-    margin-top: 20px;
-    margin-bottom: 10px;
-    text-align: center;
-}
-
-.unauthorized-card h4 {
-    color: #ef4444;
-    margin: 4px 0;
-    font-size: 0.95rem;
-}
-
-.unauthorized-card p {
-    color: #cbd5e1;
-    font-size: 0.85rem;
-    margin: 0 0 12px 0;
-}
-
-.btn-retry {
-    background-color: #ef4444;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    width: 100%;
-}
-.btn-retry:hover {
-    background-color: #dc2626;
-}
-.unauthorized-icon {
-    font-size: 2rem;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-    /* Botón de Navegación Pacientes */
-.nav-btn {
-    background-color: #ffffff;
-  color: #6b21a8; /* Violeta */
-  border: none;
-  padding: 0.4rem 0.9rem;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-/* Fila Inferior (Usuario y Cerrar Sesión empujado a la derecha) */
-.header-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 0.6rem;
-}
-.nav-btn:hover {
-    background-color: var(--accent-light);
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
-
-.logout-btn {
-    background: rgba(147, 51, 234, 0.15); /* Fondo violeta suave */
-  color: #d8b4fe; /* Texto violeta claro */
-  border: 1px solid rgba(168, 85, 247, 0.4); /* Borde violeta */
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.logout-btn:hover {
-    background: rgba(147, 51, 234, 0.3);
-  color: #ffffff;
-}
     #selected-date-text {
         color: #333 !important;
         font-size: 14pt !important;
@@ -713,34 +771,15 @@ body {
         color: #444 !important;
         font-size: 11pt !important;
     }
-	
-	
-	
-	
-	
-}
-/* 🔝 Prioridad de capas para los modales */
-
-/* El modal de agendar turno se queda en un nivel estándar */
-#appointment-modal {
-    z-index: 1000;
 }
 
-/* Forzamos al modal de nuevo paciente a estar por encima de TODO */
-#patient-modal {
-    z-index: 2000 !important; 
-}
-/* =========================================================
-   📱 RESPONSIVIDAD PARA CELULARES (Menos de 768px)
-   ========================================================= */
-
+/* 📱 RESPONSIVIDAD PARA CELULARES (Menos de 768px) */
 @media (max-width: 768px) {
     .app-container {
         padding: 0.75rem;
         gap: 1rem;
     }
 
-    /* Rediseño del Header en celular */
     .app-header {
         padding: 0.75rem 1rem;
     }
@@ -749,13 +788,11 @@ body {
         font-size: 1.1rem;
     }
 
-    /* Pasa las columnas a una sola fila vertical */
     .main-layout {
         grid-template-columns: 1fr;
         gap: 1rem;
     }
 
-    /* Ajuste de días en la cuadrícula del calendario */
     .days {
         gap: 0.25rem;
     }
@@ -773,19 +810,17 @@ body {
         font-size: 0.75rem;
     }
 
-    /* Paneles adaptables */
     .panel {
         padding: 1rem;
     }
 
     .appointments-list {
-        max-height: none; /* Que fluya con el scroll de la página */
+        max-height: none;
     }
 
-    /* Ocultar texto largo del usuario en móviles ultra pequeños si es necesario */
     @media (max-width: 400px) {
         .user-name {
-            display: none; /* Solo muestra el Avatar/Badge y 'Cerrar Sesión' si la pantalla es muy estrecha */
+            display: none;
         }
     }
 }
