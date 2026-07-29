@@ -566,31 +566,42 @@ body {
         border-bottom: 2px solid black;
         padding-bottom: 10px;
     }
-
-    .unauthorized-card {
-    background-color: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 20px auto;
-    max-width: 400px;
+.unauthorized-card {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    animation: fadeIn 0.3s ease-in-out;
 }
 
-.unauthorized-card h3 {
-    color: #991b1b;
-    margin: 8px 0;
-    font-size: 1.1rem;
+.unauthorized-card h4 {
+    color: #ef4444;
+    margin: 4px 0;
+    font-size: 0.95rem;
 }
 
 .unauthorized-card p {
-    color: #7f1d1d;
-    font-size: 0.9rem;
-    margin: 0;
+    color: #cbd5e1;
+    font-size: 0.85rem;
+    margin: 0 0 10px 0;
 }
 
+.btn-retry {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-retry:hover {
+    background-color: #dc2626;
+}
 .unauthorized-icon {
     font-size: 2rem;
 }

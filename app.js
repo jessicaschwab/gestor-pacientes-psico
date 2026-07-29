@@ -97,11 +97,12 @@ const profileHistoryContainer = document.getElementById('profile-history-contain
 
 // 🔒 CONTROL DE SEGURIDAD Y SESIÓN CON GOOGLE
 async function verificarSesion() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+   const { data: { session } } = await supabaseClient.auth.getSession();
     
     const loginContainer = document.getElementById('login-container');
     const appContainer = document.getElementById('app-container');
     const unauthorizedCard = document.getElementById('unauthorized-message');
+    const googleBtnWrapper = document.getElementById('google-btn-wrapper');
     const deniedEmailSpan = document.getElementById('denied-email');
 
     const emailsAutorizados = [
@@ -113,39 +114,43 @@ async function verificarSesion() {
 
         // 🛑 SI NO ESTÁ AUTORIZADO
         if (!emailsAutorizados.includes(userEmail)) {
-            // Cierra la sesión en Supabase
+            // Cierra la sesión activa en el background
             await supabaseClient.auth.signOut();
 
-            // Muestra el cartel con el mail bloqueado
+            // Muestra la tarjeta con el aviso y oculta el botón viejo trabado
             if (deniedEmailSpan) deniedEmailSpan.textContent = userEmail;
             if (unauthorizedCard) unauthorizedCard.style.display = 'block';
+            if (googleBtnWrapper) googleBtnWrapper.style.display = 'none';
 
-            // Mantiene el login visible y oculta la app
             if (loginContainer) loginContainer.style.display = 'flex';
             if (appContainer) appContainer.style.display = 'none';
-
-            return; // Corta la ejecución
+            return;
         }
 
         // 🟢 SI ESTÁ AUTORIZADO
-        if (unauthorizedCard) unauthorizedCard.style.display = 'none'; // Oculta cartel si estaba
+        if (unauthorizedCard) unauthorizedCard.style.display = 'none';
+        if (googleBtnWrapper) googleBtnWrapper.style.display = 'block';
         if (loginContainer) loginContainer.style.display = 'none';
         if (appContainer) appContainer.style.display = 'block';
-        
-        if (session.user?.user_metadata?.full_name) {
-            const userDisplay = document.getElementById('user-display-name');
-            if (userDisplay) userDisplay.textContent = session.user.user_metadata.full_name;
-        }
-        
+
         await cargarDatos();
     } else {
-        // Sin sesión
         if (unauthorizedCard) unauthorizedCard.style.display = 'none';
+        if (googleBtnWrapper) googleBtnWrapper.style.display = 'block';
         if (loginContainer) loginContainer.style.display = 'flex';
         if (appContainer) appContainer.style.display = 'none';
     }
 }
-
+// Función para destrabar el botón y probar de nuevo
+async function limpiarYReintentar() {
+    await supabaseClient.auth.signOut();
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Oculta la alerta y vuelve a mostrar el botón de Google
+    document.getElementById('unauthorized-message').style.display = 'none';
+    document.getElementById('google-btn-wrapper').style.display = 'block';
+}
 // 🚀 INICIALIZACIÓN DE EVENTOS PRINCIPALES
 async function init() {
     // 🔑 Evento Iniciar Sesión con Google
