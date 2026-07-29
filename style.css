@@ -567,6 +567,39 @@ body {
         padding-bottom: 10px;
     }
 
+    .unauthorized-card {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.unauthorized-card h3 {
+    color: #991b1b;
+    margin: 8px 0;
+    font-size: 1.1rem;
+}
+
+.unauthorized-card p {
+    color: #7f1d1d;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.unauthorized-icon {
+    font-size: 2rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
     /* Botón de Navegación Pacientes */
 .nav-btn {
     background-color: #ffffff;

@@ -97,13 +97,13 @@ const profileHistoryContainer = document.getElementById('profile-history-contain
 
 // 🔒 CONTROL DE SEGURIDAD Y SESIÓN CON GOOGLE
 async function verificarSesion() {
-    async function verificarSesion() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     
     const loginContainer = document.getElementById('login-container');
     const appContainer = document.getElementById('app-container');
+    const unauthorizedCard = document.getElementById('unauthorized-message');
+    const deniedEmailSpan = document.getElementById('denied-email');
 
-    // 1. Lista de correos autorizados
     const emailsAutorizados = [
         'profesoraschwabjessica@gmail.com'
     ];
@@ -111,20 +111,24 @@ async function verificarSesion() {
     if (session) {
         const userEmail = session.user?.email?.toLowerCase();
 
-        // 2. Si el email NO está en la lista -> BLOQUEAR
+        // 🛑 SI NO ESTÁ AUTORIZADO
         if (!emailsAutorizados.includes(userEmail)) {
-            alert(`🚫 Acceso denegado: El correo ${userEmail} no tiene permisos para acceder.`);
-            
-            // Cerrar sesión en Supabase para limpiar el estado
+            // Cierra la sesión en Supabase
             await supabaseClient.auth.signOut();
-            
-            // Forzar vista de login
+
+            // Muestra el cartel con el mail bloqueado
+            if (deniedEmailSpan) deniedEmailSpan.textContent = userEmail;
+            if (unauthorizedCard) unauthorizedCard.style.display = 'block';
+
+            // Mantiene el login visible y oculta la app
             if (loginContainer) loginContainer.style.display = 'flex';
             if (appContainer) appContainer.style.display = 'none';
-            return; // 🛑 CORTA LA EJECUCIÓN: No llega a cargarDatos()
+
+            return; // Corta la ejecución
         }
 
-        // 3. Si el email SÍ está autorizado -> PERMITIR
+        // 🟢 SI ESTÁ AUTORIZADO
+        if (unauthorizedCard) unauthorizedCard.style.display = 'none'; // Oculta cartel si estaba
         if (loginContainer) loginContainer.style.display = 'none';
         if (appContainer) appContainer.style.display = 'block';
         
@@ -135,11 +139,11 @@ async function verificarSesion() {
         
         await cargarDatos();
     } else {
-        // Sin sesión activa
+        // Sin sesión
+        if (unauthorizedCard) unauthorizedCard.style.display = 'none';
         if (loginContainer) loginContainer.style.display = 'flex';
         if (appContainer) appContainer.style.display = 'none';
     }
-}
 }
 
 // 🚀 INICIALIZACIÓN DE EVENTOS PRINCIPALES
