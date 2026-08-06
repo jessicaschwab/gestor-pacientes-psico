@@ -151,24 +151,58 @@ async function limpiarYReintentar() {
     document.getElementById('unauthorized-message').style.display = 'none';
     document.getElementById('google-btn-wrapper').style.display = 'block';
 }
-// 🚀 INICIALIZACIÓN DE EVENTOS PRINCIPALES
+
+// 🔑 Función global para iniciar sesión
+async function iniciarSesionGoogle() {
+    console.log("Iniciando login con Google...");
+    try {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin,
+                queryParams: {
+                    prompt: 'select_account'
+                }
+            }
+        });
+        if (error) throw error;
+    } catch (err) {
+        console.error('Error en autenticación:', err.message);
+        alert('Error al iniciar sesión: ' + err.message);
+    }
+}
+
+// Hacemos que sea visible globalmente para el onclick del HTML
+window.iniciarSesionGoogle = iniciarSesionGoogle;
+// 🚀 Inicialización de eventos al cargar el DOM
 async function init() {
     // 🔑 Evento Iniciar Sesión con Google
     const btnLoginGoogle = document.getElementById('btn-login-google');
     if (btnLoginGoogle) {
-        btnLoginGoogle.addEventListener('click', async () => {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                   redirectTo: 'https://gestor-pacientes-psico.vercel.app',
-            queryParams: {
-                prompt: 'select_account'
-                }
-            });
-            if (error) alert('Error al iniciar sesión: ' + error.message);
+        // Asignamos la función al evento click
+        btnLoginGoogle.onclick = iniciarSesionGoogle;
+    }
+}
+
+    // 🚪 Evento Cerrar Sesión
+    const btnLogout = document.getElementById('btn-logout') || document.getElementById('logout-btn');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
         });
     }
 
+    // Verificar el estado de la sesión
+    await verificarSesion();
+}
+
+// Asegurar que el DOM esté listo antes de ejecutar init
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
     // 🚪 Evento Cerrar Sesión
     const btnLogout = document.getElementById('btn-logout') || document.getElementById('logout-btn');
     if (btnLogout) {
